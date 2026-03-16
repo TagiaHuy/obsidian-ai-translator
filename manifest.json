@@ -1,0 +1,9 @@
+{
+  "id": "obsidian-ai-translator",
+  "name": "AI Translator",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Translate specific words to a target language using AI (Gemini, OpenAI, OpenRouter)",
+  "author": "TaGiaHuy",
+  "isDesktopOnly": false
+}

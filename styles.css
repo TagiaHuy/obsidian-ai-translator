@@ -1,0 +1,121 @@
+.ai-translator-popup {
+    position: fixed;
+    z-index: 1000;
+    background-color: var(--background-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    padding: 12px;
+    max-width: 350px;
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.ai-translator-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--divider-color);
+    padding-bottom: 4px;
+    cursor: grab;
+}
+
+.ai-translator-popup-header:active {
+    cursor: grabbing;
+}
+
+.ai-translator-popup-title {
+    font-weight: bold;
+    color: var(--text-accent);
+    flex-grow: 1;
+}
+
+.ai-translator-popup-close-btn {
+    cursor: pointer;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.ai-translator-popup-close-btn:hover {
+    color: var(--text-normal);
+    background-color: var(--background-modifier-hover);
+}
+
+.ai-translator-popup-content {
+    color: var(--text-normal);
+}
+
+.ai-translator-popup-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: 10px;
+    gap: 8px;
+}
+
+.ai-translator-dropdown-container {
+    flex-grow: 1;
+}
+
+.ai-translator-popup-select {
+    padding: 2px 4px;
+    font-size: 11px;
+    border-radius: 4px;
+    background-color: var(--background-secondary);
+    border: 1px solid var(--background-modifier-border);
+    color: var(--text-normal);
+}
+
+.ai-translator-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    background-color: var(--interactive-normal);
+    color: var(--text-normal);
+    border: 1px solid var(--background-modifier-border);
+}
+
+.ai-translator-icon-btn:hover {
+    background-color: var(--background-modifier-hover);
+}
+
+.ai-translator-save-btn {
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+}
+
+.ai-translator-save-btn:hover {
+    background-color: var(--interactive-accent-hover);
+}
+
+.ai-translator-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    color: var(--text-muted);
+}
+
+@keyframes ai-translator-spin {
+    to { transform: rotate(360deg); }
+}
+
+.ai-translator-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--text-muted);
+    border-top-color: var(--text-accent);
+    border-radius: 50%;
+    animation: ai-translator-spin 0.6s linear infinite;
+    margin-right: 10px;
+}
