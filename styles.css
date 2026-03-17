@@ -21,10 +21,20 @@
     border-bottom: 1px solid var(--divider-color);
     padding-bottom: 4px;
     cursor: grab;
+    touch-action: none;
 }
 
 .ai-translator-popup-header:active {
     cursor: grabbing;
+}
+
+@media (max-width: 600px) {
+    .ai-translator-popup {
+        width: 90vw;
+        max-width: 90vw;
+        left: 5vw !important;
+        margin-left: 0;
+    }
 }
 
 .ai-translator-popup-title {

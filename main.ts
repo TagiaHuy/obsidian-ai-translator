@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, requestUrl, Setting, setIcon, setTooltip } from 'obsidian';
+import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, requestUrl, Setting, setIcon, setTooltip, Platform } from 'obsidian';
 import { generateRequestUrl, createRequestBody, normaliseResponse } from 'google-translate-api-browser';
 
 interface AITranslatorSettings {
@@ -432,7 +432,9 @@ export default class AITranslatorPlugin extends Plugin {
 		if (this.activeHandlers.escape) document.removeEventListener('keydown', this.activeHandlers.escape);
 		if (this.activeHandlers.clickOutside) document.removeEventListener('mousedown', this.activeHandlers.clickOutside);
 		if (this.activeHandlers.mousemove) document.removeEventListener('mousemove', this.activeHandlers.mousemove);
+		if (this.activeHandlers.touchmove) document.removeEventListener('touchmove', this.activeHandlers.touchmove);
 		if (this.activeHandlers.mouseup) document.removeEventListener('mouseup', this.activeHandlers.mouseup);
+		if (this.activeHandlers.touchend) document.removeEventListener('touchend', this.activeHandlers.touchend);
 		
 		this.activeHandlers = {};
 		this.refreshActivePopup = null;
@@ -444,8 +446,16 @@ export default class AITranslatorPlugin extends Plugin {
 		if (!domRect) return;
 
 		this.popupEl = document.body.createEl('div', { cls: 'ai-translator-popup' });
-		this.popupEl.style.left = `${domRect.left}px`;
-		this.popupEl.style.top = `${domRect.bottom + 10}px`;
+		
+		if (Platform.isMobile) {
+			// Center on mobile
+			this.popupEl.style.left = '50%';
+			this.popupEl.style.top = '20%';
+			this.popupEl.style.transform = 'translateX(-50%)';
+		} else {
+			this.popupEl.style.left = `${domRect.left}px`;
+			this.popupEl.style.top = `${domRect.bottom + 10}px`;
+		}
 
 		const header = this.popupEl.createEl('div', { cls: 'ai-translator-popup-header' });
 		header.createEl('span', { text: 'AI Dictionary', cls: 'ai-translator-popup-title' });
@@ -463,21 +473,59 @@ export default class AITranslatorPlugin extends Plugin {
 		let startX: number, startY: number;
 		let initialLeft: number, initialTop: number;
 
-		header.onmousedown = (e: MouseEvent) => {
+		const startDragging = (clientX: number, clientY: number) => {
 			isDragging = true;
-			startX = e.clientX;
-			startY = e.clientY;
-			initialLeft = parseInt(this.popupEl!.style.left);
-			initialTop = parseInt(this.popupEl!.style.top);
+			startX = clientX;
+			startY = clientY;
+			
+			const rect = this.popupEl!.getBoundingClientRect();
+			initialLeft = rect.left;
+			initialTop = rect.top;
+			
+			// Remove transform if it exists (for mobile centering)
+			if (this.popupEl!.style.transform) {
+				this.popupEl!.style.transform = '';
+				this.popupEl!.style.left = `${initialLeft}px`;
+				this.popupEl!.style.top = `${initialTop}px`;
+			}
+			
 			header.style.cursor = 'grabbing';
 		};
 
-		const moveHandler = (e: MouseEvent) => {
+		header.onmousedown = (e: MouseEvent) => {
+			startDragging(e.clientX, e.clientY);
+		};
+
+		header.ontouchstart = (e: TouchEvent) => {
+			if (e.touches.length > 0) {
+				startDragging(e.touches[0].clientX, e.touches[0].clientY);
+			}
+		};
+
+		const moveHandler = (clientX: number, clientY: number) => {
 			if (!isDragging || !this.popupEl) return;
-			const dx = e.clientX - startX;
-			const dy = e.clientY - startY;
-			this.popupEl.style.left = `${initialLeft + dx}px`;
-			this.popupEl.style.top = `${initialTop + dy}px`;
+			const dx = clientX - startX;
+			const dy = clientY - startY;
+			
+			let newLeft = initialLeft + dx;
+			let newTop = initialTop + dy;
+			
+			// Keep within screen bounds
+			const rect = this.popupEl.getBoundingClientRect();
+			const padding = 10;
+			
+			newLeft = Math.max(padding, Math.min(newLeft, window.innerWidth - rect.width - padding));
+			newTop = Math.max(padding, Math.min(newTop, window.innerHeight - rect.height - padding));
+
+			this.popupEl.style.left = `${newLeft}px`;
+			this.popupEl.style.top = `${newTop}px`;
+		};
+
+		const mouseMoveHandler = (e: MouseEvent) => moveHandler(e.clientX, e.clientY);
+		const touchMoveHandler = (e: TouchEvent) => {
+			if (e.touches.length > 0) {
+				moveHandler(e.touches[0].clientX, e.touches[0].clientY);
+			}
 		};
 
 		const stopDragging = () => {
@@ -485,10 +533,15 @@ export default class AITranslatorPlugin extends Plugin {
 			if (header) header.style.cursor = 'grab';
 		};
 
-		this.activeHandlers.mousemove = moveHandler;
+		this.activeHandlers.mousemove = mouseMoveHandler;
+		this.activeHandlers.touchmove = touchMoveHandler;
 		this.activeHandlers.mouseup = stopDragging;
-		document.addEventListener('mousemove', moveHandler);
+		this.activeHandlers.touchend = stopDragging;
+
+		document.addEventListener('mousemove', mouseMoveHandler);
 		document.addEventListener('mouseup', stopDragging);
+		document.addEventListener('touchmove', touchMoveHandler, { passive: false });
+		document.addEventListener('touchend', stopDragging);
 
 		const contentArea = this.popupEl.createEl('textarea', { cls: 'ai-translator-popup-content' });
 		contentArea.style.width = '100%';

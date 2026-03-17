@@ -560,8 +560,12 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
       document.removeEventListener("mousedown", this.activeHandlers.clickOutside);
     if (this.activeHandlers.mousemove)
       document.removeEventListener("mousemove", this.activeHandlers.mousemove);
+    if (this.activeHandlers.touchmove)
+      document.removeEventListener("touchmove", this.activeHandlers.touchmove);
     if (this.activeHandlers.mouseup)
       document.removeEventListener("mouseup", this.activeHandlers.mouseup);
+    if (this.activeHandlers.touchend)
+      document.removeEventListener("touchend", this.activeHandlers.touchend);
     this.activeHandlers = {};
     this.refreshActivePopup = null;
   }
@@ -571,8 +575,14 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
     if (!domRect)
       return;
     this.popupEl = document.body.createEl("div", { cls: "ai-translator-popup" });
-    this.popupEl.style.left = `${domRect.left}px`;
-    this.popupEl.style.top = `${domRect.bottom + 10}px`;
+    if (import_obsidian.Platform.isMobile) {
+      this.popupEl.style.left = "50%";
+      this.popupEl.style.top = "20%";
+      this.popupEl.style.transform = "translateX(-50%)";
+    } else {
+      this.popupEl.style.left = `${domRect.left}px`;
+      this.popupEl.style.top = `${domRect.bottom + 10}px`;
+    }
     const header = this.popupEl.createEl("div", { cls: "ai-translator-popup-header" });
     header.createEl("span", { text: "AI Dictionary", cls: "ai-translator-popup-title" });
     const closeBtn = header.createEl("div", { cls: "ai-translator-popup-close-btn" });
@@ -585,31 +595,61 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
     let isDragging = false;
     let startX, startY;
     let initialLeft, initialTop;
-    header.onmousedown = (e2) => {
+    const startDragging = (clientX, clientY) => {
       isDragging = true;
-      startX = e2.clientX;
-      startY = e2.clientY;
-      initialLeft = parseInt(this.popupEl.style.left);
-      initialTop = parseInt(this.popupEl.style.top);
+      startX = clientX;
+      startY = clientY;
+      const rect = this.popupEl.getBoundingClientRect();
+      initialLeft = rect.left;
+      initialTop = rect.top;
+      if (this.popupEl.style.transform) {
+        this.popupEl.style.transform = "";
+        this.popupEl.style.left = `${initialLeft}px`;
+        this.popupEl.style.top = `${initialTop}px`;
+      }
       header.style.cursor = "grabbing";
     };
-    const moveHandler = (e2) => {
+    header.onmousedown = (e2) => {
+      startDragging(e2.clientX, e2.clientY);
+    };
+    header.ontouchstart = (e2) => {
+      if (e2.touches.length > 0) {
+        startDragging(e2.touches[0].clientX, e2.touches[0].clientY);
+      }
+    };
+    const moveHandler = (clientX, clientY) => {
       if (!isDragging || !this.popupEl)
         return;
-      const dx = e2.clientX - startX;
-      const dy = e2.clientY - startY;
-      this.popupEl.style.left = `${initialLeft + dx}px`;
-      this.popupEl.style.top = `${initialTop + dy}px`;
+      const dx = clientX - startX;
+      const dy = clientY - startY;
+      let newLeft = initialLeft + dx;
+      let newTop = initialTop + dy;
+      const rect = this.popupEl.getBoundingClientRect();
+      const padding = 10;
+      newLeft = Math.max(padding, Math.min(newLeft, window.innerWidth - rect.width - padding));
+      newTop = Math.max(padding, Math.min(newTop, window.innerHeight - rect.height - padding));
+      this.popupEl.style.left = `${newLeft}px`;
+      this.popupEl.style.top = `${newTop}px`;
+    };
+    const mouseMoveHandler = (e2) => moveHandler(e2.clientX, e2.clientY);
+    const touchMoveHandler = (e2) => {
+      if (e2.touches.length > 0) {
+        moveHandler(e2.touches[0].clientX, e2.touches[0].clientY);
+      }
     };
     const stopDragging = () => {
       isDragging = false;
       if (header)
         header.style.cursor = "grab";
     };
-    this.activeHandlers.mousemove = moveHandler;
+    this.activeHandlers.mousemove = mouseMoveHandler;
+    this.activeHandlers.touchmove = touchMoveHandler;
     this.activeHandlers.mouseup = stopDragging;
-    document.addEventListener("mousemove", moveHandler);
+    this.activeHandlers.touchend = stopDragging;
+    document.addEventListener("mousemove", mouseMoveHandler);
     document.addEventListener("mouseup", stopDragging);
+    document.addEventListener("touchmove", touchMoveHandler, { passive: false });
+    document.addEventListener("touchend", stopDragging);
     const contentArea = this.popupEl.createEl("textarea", { cls: "ai-translator-popup-content" });
     contentArea.style.width = "100%";
     contentArea.style.height = "150px";
