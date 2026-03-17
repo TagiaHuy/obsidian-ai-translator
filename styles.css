@@ -28,13 +28,12 @@
     cursor: grabbing;
 }
 
-@media (max-width: 600px) {
-    .ai-translator-popup {
-        width: 90vw;
-        max-width: 90vw;
-        left: 5vw !important;
-        margin-left: 0;
-    }
+.ai-translator-popup.is-mobile {
+    width: 90vw !important;
+    max-width: 90vw !important;
+    left: 50% !important;
+    top: 20% !important;
+    transform: translateX(-50%) !important;
 }
 
 .ai-translator-popup-title {

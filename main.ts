@@ -62,6 +62,7 @@ export default class AITranslatorPlugin extends Plugin {
 		this.addCommand({
 			id: 'translate-selected-text-replace',
 			name: 'Translate Selected Text (Replace)',
+			icon: 'languages',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
 				const selectedText = editor.getSelection();
 				if (!selectedText) {
@@ -89,6 +90,7 @@ export default class AITranslatorPlugin extends Plugin {
         this.addCommand({
 			id: 'translate-selected-text-append',
 			name: 'Translate Selected Text (Append in parentheses)',
+			icon: 'plus-circle',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
 				const selectedText = editor.getSelection();
 				if (!selectedText) {
@@ -116,6 +118,7 @@ export default class AITranslatorPlugin extends Plugin {
 		this.addCommand({
 			id: 'show-dictionary-popup',
 			name: 'Show Dictionary Popup for Selection',
+			icon: 'book',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
 				const selectedText = editor.getSelection();
 				if (!selectedText) {
@@ -138,6 +141,7 @@ export default class AITranslatorPlugin extends Plugin {
 		this.addCommand({
 			id: 'cycle-ai-provider',
 			name: 'Cycle AI Provider',
+			icon: 'refresh-ccw',
 			callback: async () => {
 				const allProviders: Array<'gemini' | 'openai' | 'openrouter' | 'google' | 'free-dictionary'> = ['gemini', 'openai', 'openrouter', 'google', 'free-dictionary'];
 				const loop = this.settings.providerLoop && this.settings.providerLoop.length > 0 
@@ -447,11 +451,9 @@ export default class AITranslatorPlugin extends Plugin {
 
 		this.popupEl = document.body.createEl('div', { cls: 'ai-translator-popup' });
 		
-		if (Platform.isMobile) {
-			// Center on mobile
-			this.popupEl.style.left = '50%';
-			this.popupEl.style.top = '20%';
-			this.popupEl.style.transform = 'translateX(-50%)';
+		const isNarrow = window.innerWidth < 600;
+		if (Platform.isMobile || isNarrow) {
+			this.popupEl.addClass('is-mobile');
 		} else {
 			this.popupEl.style.left = `${domRect.left}px`;
 			this.popupEl.style.top = `${domRect.bottom + 10}px`;
@@ -482,12 +484,13 @@ export default class AITranslatorPlugin extends Plugin {
 			initialLeft = rect.left;
 			initialTop = rect.top;
 			
-			// Remove transform if it exists (for mobile centering)
+			// Remove mobile class/transform to allow manual positioning
+			this.popupEl!.removeClass('is-mobile');
 			if (this.popupEl!.style.transform) {
 				this.popupEl!.style.transform = '';
-				this.popupEl!.style.left = `${initialLeft}px`;
-				this.popupEl!.style.top = `${initialTop}px`;
 			}
+			this.popupEl!.style.left = `${initialLeft}px`;
+			this.popupEl!.style.top = `${initialTop}px`;
 			
 			header.style.cursor = 'grabbing';
 		};

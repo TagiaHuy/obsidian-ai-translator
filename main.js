@@ -242,6 +242,7 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
     this.addCommand({
       id: "translate-selected-text-replace",
       name: "Translate Selected Text (Replace)",
+      icon: "languages",
       editorCallback: async (editor, view) => {
         const selectedText = editor.getSelection();
         if (!selectedText) {
@@ -266,6 +267,7 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
     this.addCommand({
       id: "translate-selected-text-append",
       name: "Translate Selected Text (Append in parentheses)",
+      icon: "plus-circle",
       editorCallback: async (editor, view) => {
         const selectedText = editor.getSelection();
         if (!selectedText) {
@@ -290,6 +292,7 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
     this.addCommand({
       id: "show-dictionary-popup",
       name: "Show Dictionary Popup for Selection",
+      icon: "book",
       editorCallback: async (editor, view) => {
         const selectedText = editor.getSelection();
         if (!selectedText) {
@@ -308,6 +311,7 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
     this.addCommand({
       id: "cycle-ai-provider",
       name: "Cycle AI Provider",
+      icon: "refresh-ccw",
       callback: async () => {
         const allProviders = ["gemini", "openai", "openrouter", "google", "free-dictionary"];
         const loop = this.settings.providerLoop && this.settings.providerLoop.length > 0 ? this.settings.providerLoop : allProviders;
@@ -575,10 +579,9 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
     if (!domRect)
       return;
     this.popupEl = document.body.createEl("div", { cls: "ai-translator-popup" });
-    if (import_obsidian.Platform.isMobile) {
-      this.popupEl.style.left = "50%";
-      this.popupEl.style.top = "20%";
-      this.popupEl.style.transform = "translateX(-50%)";
+    const isNarrow = window.innerWidth < 600;
+    if (import_obsidian.Platform.isMobile || isNarrow) {
+      this.popupEl.addClass("is-mobile");
     } else {
       this.popupEl.style.left = `${domRect.left}px`;
       this.popupEl.style.top = `${domRect.bottom + 10}px`;
@@ -602,11 +605,12 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
       const rect = this.popupEl.getBoundingClientRect();
       initialLeft = rect.left;
       initialTop = rect.top;
+      this.popupEl.removeClass("is-mobile");
       if (this.popupEl.style.transform) {
         this.popupEl.style.transform = "";
-        this.popupEl.style.left = `${initialLeft}px`;
-        this.popupEl.style.top = `${initialTop}px`;
       }
+      this.popupEl.style.left = `${initialLeft}px`;
+      this.popupEl.style.top = `${initialTop}px`;
       header.style.cursor = "grabbing";
     };
     header.onmousedown = (e2) => {
