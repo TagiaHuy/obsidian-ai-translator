@@ -3,7 +3,7 @@
   "name": "AI Translator",
   "version": "1.0.0",
   "minAppVersion": "0.15.0",
-  "description": "Translate specific words to a target language using AI (Gemini, OpenAI, OpenRouter)",
+  "description": "Translate specific words to a target language using AI (Gemini, OpenAI, OpenRouter) and more.",
   "author": "TaGiaHuy",
   "isDesktopOnly": false
 }
