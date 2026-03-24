@@ -241,7 +241,7 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
     await this.loadSettings();
     this.addCommand({
       id: "translate-selected-text-replace",
-      name: "Translate Selected Text (Replace)",
+      name: "Translate selected text (replace)",
       icon: "languages",
       editorCallback: async (editor, view) => {
         const selectedText = editor.getSelection();
@@ -259,14 +259,15 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
             new import_obsidian.Notice("Failed to get translation.");
           }
         } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
           console.error("Translation error:", error);
-          new import_obsidian.Notice(`Translation error: ${error.message || error}`);
+          new import_obsidian.Notice(`Translation error: ${msg}`);
         }
       }
     });
     this.addCommand({
       id: "translate-selected-text-append",
-      name: "Translate Selected Text (Append in parentheses)",
+      name: "Translate selected text (append in parentheses)",
       icon: "plus-circle",
       editorCallback: async (editor, view) => {
         const selectedText = editor.getSelection();
@@ -284,14 +285,15 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
             new import_obsidian.Notice("Failed to get translation.");
           }
         } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
           console.error("Translation error:", error);
-          new import_obsidian.Notice(`Translation error: ${error.message || error}`);
+          new import_obsidian.Notice(`Translation error: ${msg}`);
         }
       }
     });
     this.addCommand({
       id: "show-dictionary-popup",
-      name: "Show Dictionary Popup for Selection",
+      name: "Show dictionary popup for selection",
       icon: "book",
       editorCallback: async (editor, view) => {
         const selectedText = editor.getSelection();
@@ -307,7 +309,7 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
     this.addSettingTab(new AITranslatorSettingTab(this.app, this));
     this.addCommand({
       id: "cycle-ai-provider",
-      name: "Cycle AI Provider",
+      name: "Cycle AI provider",
       icon: "refresh-ccw",
       callback: async () => {
         const allProviders = ["gemini", "openai", "openrouter", "google", "free-dictionary"];
@@ -324,32 +326,31 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
     });
     this.registerEditorExtension(this.getEditorExtension());
     this.registerDomEvent(document, "mouseup", (evt) => {
-      this.handleGlobalSelection(evt);
+      void this.handleGlobalSelection(evt);
     });
     this.registerDomEvent(document, "touchend", (evt) => {
-      this.handleGlobalSelection(evt);
+      void this.handleGlobalSelection(evt);
     });
   }
-  handleGlobalSelection(evt) {
-    setTimeout(() => {
-      var _a, _b;
-      const selection = window.getSelection();
-      const text = selection == null ? void 0 : selection.toString().trim();
-      if (text && text.length > 0) {
-        if ((_a = this.popupEl) == null ? void 0 : _a.contains(evt.target))
-          return;
-        const activeView = this.app.workspace.getActiveViewOfType(import_obsidian.MarkdownView);
-        if (activeView && activeView.getMode() === "preview") {
-          if (this.settings.triggerMode === "auto") {
-            this.handleSelection(text);
-          }
-        }
-      } else {
-        if (!((_b = this.popupEl) == null ? void 0 : _b.contains(evt.target))) {
-          this.removePopup();
+  async handleGlobalSelection(evt) {
+    var _a, _b;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const selection = window.getSelection();
+    const text = selection == null ? void 0 : selection.toString().trim();
+    if (text && text.length > 0) {
+      if ((_a = this.popupEl) == null ? void 0 : _a.contains(evt.target))
+        return;
+      const activeView = this.app.workspace.getActiveViewOfType(import_obsidian.MarkdownView);
+      if (activeView && activeView.getMode() === "preview") {
+        if (this.settings.triggerMode === "auto") {
+          this.handleSelection(text);
         }
       }
-    }, 50);
+    } else {
+      if (!((_b = this.popupEl) == null ? void 0 : _b.contains(evt.target))) {
+        this.removePopup();
+      }
+    }
   }
   onunload() {
   }
@@ -419,8 +420,9 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
       }
       return result;
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
       console.error("Free Dictionary error:", error);
-      throw new Error(`Free Dictionary error: ${error.message || error}`);
+      throw new Error(`Free Dictionary error: ${msg}`);
     }
   }
   async callGoogleTranslate(text) {
@@ -442,8 +444,9 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
       const result = b(response.text);
       return result.text;
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
       console.error("Google Translate error:", error);
-      throw new Error(`Google Translate error: ${error.message || error}`);
+      throw new Error(`Google Translate error: ${msg}`);
     }
   }
   getLanguageCode(language) {
@@ -573,8 +576,8 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
   handleSelection(text) {
     if (this.selectionTimeout)
       clearTimeout(this.selectionTimeout);
-    this.selectionTimeout = setTimeout(async () => {
-      await this.showPopup(text);
+    this.selectionTimeout = setTimeout(() => {
+      void this.showPopup(text);
     }, 700);
   }
   removePopup() {
@@ -625,11 +628,12 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
     if (import_obsidian.Platform.isMobile || isNarrow) {
       this.popupEl.addClass("is-mobile");
     } else if (rect) {
-      this.popupEl.style.left = `${rect.left}px`;
-      this.popupEl.style.top = `${rect.bottom + 10}px`;
+      this.popupEl.setCssProps({ "--popup-left": `${rect.left}px`, "--popup-top": `${rect.bottom + 10}px` });
+      this.popupEl.style.left = `var(--popup-left)`;
+      this.popupEl.style.top = `var(--popup-top)`;
     }
     const header = this.popupEl.createEl("div", { cls: "ai-translator-popup-header" });
-    header.createEl("span", { text: "AI Dictionary", cls: "ai-translator-popup-title" });
+    header.createEl("span", { text: "AI dictionary", cls: "ai-translator-popup-title" });
     const closeBtn = header.createEl("div", { cls: "ai-translator-popup-close-btn" });
     (0, import_obsidian.setIcon)(closeBtn, "x");
     (0, import_obsidian.setTooltip)(closeBtn, "Close");
@@ -648,12 +652,11 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
       initialLeft = rect2.left;
       initialTop = rect2.top;
       this.popupEl.removeClass("is-mobile");
-      if (this.popupEl.style.transform) {
-        this.popupEl.style.transform = "";
-      }
-      this.popupEl.style.left = `${initialLeft}px`;
-      this.popupEl.style.top = `${initialTop}px`;
-      header.style.cursor = "grabbing";
+      this.popupEl.removeClass("is-transformed");
+      this.popupEl.setCssProps({ "--popup-left": `${initialLeft}px`, "--popup-top": `${initialTop}px` });
+      this.popupEl.style.left = `var(--popup-left)`;
+      this.popupEl.style.top = `var(--popup-top)`;
+      header.addClass("is-dragging");
     };
     header.onmousedown = (e2) => {
       startDragging(e2.clientX, e2.clientY);
@@ -674,8 +677,9 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
       const padding = 10;
       newLeft = Math.max(padding, Math.min(newLeft, window.innerWidth - rect2.width - padding));
       newTop = Math.max(padding, Math.min(newTop, window.innerHeight - rect2.height - padding));
-      this.popupEl.style.left = `${newLeft}px`;
-      this.popupEl.style.top = `${newTop}px`;
+      this.popupEl.setCssProps({ "--popup-left": `${newLeft}px`, "--popup-top": `${newTop}px` });
+      this.popupEl.style.left = `var(--popup-left)`;
+      this.popupEl.style.top = `var(--popup-top)`;
     };
     const mouseMoveHandler = (e2) => moveHandler(e2.clientX, e2.clientY);
     const touchMoveHandler = (e2) => {
@@ -686,7 +690,7 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
     const stopDragging = () => {
       isDragging = false;
       if (header)
-        header.style.cursor = "grab";
+        header.removeClass("is-dragging");
     };
     this.activeHandlers.mousemove = mouseMoveHandler;
     this.activeHandlers.touchmove = touchMoveHandler;
@@ -697,14 +701,6 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
     document.addEventListener("touchmove", touchMoveHandler, { passive: false });
     document.addEventListener("touchend", stopDragging);
     const contentArea = this.popupEl.createEl("textarea", { cls: "ai-translator-popup-content" });
-    contentArea.style.width = "100%";
-    contentArea.style.height = "150px";
-    contentArea.style.resize = "vertical";
-    contentArea.style.backgroundColor = "var(--background-primary)";
-    contentArea.style.color = "var(--text-normal)";
-    contentArea.style.border = "1px solid var(--background-modifier-border)";
-    contentArea.style.borderRadius = "4px";
-    contentArea.style.padding = "8px";
     const fetchResult = async (provider) => {
       var _a;
       contentArea.value = "";
@@ -737,7 +733,8 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
         }
         contentArea.value = result;
       } catch (error) {
-        contentArea.value = `Error: ${error.message || error}`;
+        const msg = error instanceof Error ? error.message : String(error);
+        contentArea.value = `Error: ${msg}`;
       } finally {
         loading == null ? void 0 : loading.remove();
         contentArea.disabled = false;
@@ -777,7 +774,7 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
     (0, import_obsidian.setIcon)(copyBtn, "copy");
     (0, import_obsidian.setTooltip)(copyBtn, "Copy Content");
     copyBtn.onclick = () => {
-      navigator.clipboard.writeText(contentArea.value);
+      void navigator.clipboard.writeText(contentArea.value);
       new import_obsidian.Notice("Copied to clipboard");
     };
     await fetchResult(this.settings.provider);
@@ -824,8 +821,9 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
         new import_obsidian.Notice(`Saved to ${filePath}`);
       }
     } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
       console.error("Error saving definition:", error);
-      new import_obsidian.Notice(`Error saving: ${error.message}`);
+      new import_obsidian.Notice(`Error saving: ${msg}`);
     }
   }
 };
@@ -838,22 +836,21 @@ var AITranslatorSettingTab = class extends import_obsidian.PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    new import_obsidian.Setting(containerEl).setName("Target Language").setDesc("The language you want to translate your text into (e.g., Vietnamese, English, French)").addText((text) => text.setPlaceholder("Vietnamese").setValue(this.plugin.settings.targetLanguage).onChange(async (value) => {
+    new import_obsidian.Setting(containerEl).setName("Target language").setDesc("The language you want to translate your text into (e.g., Vietnamese, English, French)").addText((text) => text.setPlaceholder("Vietnamese").setValue(this.plugin.settings.targetLanguage).onChange(async (value) => {
       this.plugin.settings.targetLanguage = value;
       await this.plugin.saveSettings();
     }));
-    new import_obsidian.Setting(containerEl).setName("Dictionary Popup Trigger").setDesc("How should the dictionary popup be triggered?").addDropdown((dropdown) => dropdown.addOption("auto", "Automatic (On Selection)").addOption("manual", "Manual (Hotkey Only)").addOption("disabled", "Disabled").setValue(this.plugin.settings.triggerMode).onChange(async (value) => {
+    new import_obsidian.Setting(containerEl).setName("Dictionary popup trigger").setDesc("How should the dictionary popup be triggered?").addDropdown((dropdown) => dropdown.addOption("auto", "Automatic (on selection)").addOption("manual", "Manual (hotkey only)").addOption("disabled", "Disabled").setValue(this.plugin.settings.triggerMode).onChange(async (value) => {
       this.plugin.settings.triggerMode = value;
       await this.plugin.saveSettings();
     }));
-    containerEl.createEl("h3", { text: "AI Provider" });
-    new import_obsidian.Setting(containerEl).setName("AI Provider").setDesc("Choose which AI service or Dictionary to use").addDropdown((dropdown) => dropdown.addOption("gemini", "Google Gemini").addOption("openai", "OpenAI").addOption("openrouter", "OpenRouter").addOption("google", "Google Translate").addOption("free-dictionary", "Free Dictionary API").setValue(this.plugin.settings.provider).onChange(async (value) => {
+    new import_obsidian.Setting(containerEl).setName("AI provider").setHeading();
+    new import_obsidian.Setting(containerEl).setName("AI provider").setDesc("Choose which AI service or dictionary to use").addDropdown((dropdown) => dropdown.addOption("gemini", "Google Gemini").addOption("openai", "OpenAI").addOption("openrouter", "OpenRouter").addOption("google", "Google Translate").addOption("free-dictionary", "Free Dictionary API").setValue(this.plugin.settings.provider).onChange(async (value) => {
       this.plugin.settings.provider = value;
       await this.plugin.saveSettings();
       this.display();
     }));
-    containerEl.createEl("h3", { text: "Provider Loop Configuration" });
-    containerEl.createEl("p", { text: 'Select which providers to include when using the "Cycle AI Provider" command.' });
+    new import_obsidian.Setting(containerEl).setName("Provider loop configuration").setDesc('Select which providers to include when using the "Cycle AI provider" command.').setHeading();
     const providers = [
       { id: "gemini", name: "Google Gemini" },
       { id: "openai", name: "OpenAI" },
@@ -873,68 +870,68 @@ var AITranslatorSettingTab = class extends import_obsidian.PluginSettingTab {
         await this.plugin.saveSettings();
       }));
     });
-    containerEl.createEl("h3", { text: `Settings for ${this.plugin.settings.provider}` });
+    new import_obsidian.Setting(containerEl).setName(`Settings for ${this.plugin.settings.provider}`).setHeading();
     const isAIProvider = ["gemini", "openai", "openrouter"].includes(this.plugin.settings.provider);
     if (isAIProvider) {
-      new import_obsidian.Setting(containerEl).setName("Custom Prompt").setDesc("Customize how the AI analyzes the selected text. Use {{targetLanguage}} and {{text}} as placeholders.").addTextArea((text) => text.setPlaceholder("Enter your custom prompt here...").setValue(this.plugin.settings.providerPrompts[this.plugin.settings.provider] || "").onChange(async (value) => {
+      new import_obsidian.Setting(containerEl).setName("Custom prompt").setDesc("Customize how the AI analyzes the selected text. Use {{targetLanguage}} and {{text}} as placeholders.").addTextArea((text) => text.setPlaceholder("Enter your custom prompt here...").setValue(this.plugin.settings.providerPrompts[this.plugin.settings.provider] || "").onChange(async (value) => {
         this.plugin.settings.providerPrompts[this.plugin.settings.provider] = value;
         await this.plugin.saveSettings();
       }));
     }
-    new import_obsidian.Setting(containerEl).setName("Save Folder").setDesc("The folder where definitions will be saved.").addText((text) => text.setPlaceholder("AI-Definitions").setValue(this.plugin.settings.saveFolder).onChange(async (value) => {
+    new import_obsidian.Setting(containerEl).setName("Save folder").setDesc("The folder where definitions will be saved.").addText((text) => text.setPlaceholder("AI-Definitions").setValue(this.plugin.settings.saveFolder).onChange(async (value) => {
       this.plugin.settings.saveFolder = value;
       await this.plugin.saveSettings();
     }));
-    new import_obsidian.Setting(containerEl).setName("Use Shared Template").setDesc("Use a single template for all providers instead of per-provider templates.").addToggle((toggle) => toggle.setValue(this.plugin.settings.useSharedTemplate).onChange(async (value) => {
+    new import_obsidian.Setting(containerEl).setName("Use shared template").setDesc("Use a single template for all providers instead of per-provider templates.").addToggle((toggle) => toggle.setValue(this.plugin.settings.useSharedTemplate).onChange(async (value) => {
       this.plugin.settings.useSharedTemplate = value;
       await this.plugin.saveSettings();
       this.display();
     }));
     if (this.plugin.settings.useSharedTemplate) {
-      new import_obsidian.Setting(containerEl).setName("Shared Save Template").setDesc("The template used for all providers. Placeholders: {{word}}, {{definition}}, {{date}}, {{time}}, {{aliases}}.").addTextArea((text) => text.setPlaceholder("Enter shared template...").setValue(this.plugin.settings.sharedSaveTemplate).onChange(async (value) => {
+      new import_obsidian.Setting(containerEl).setName("Shared save template").setDesc("The template used for all providers. Placeholders: {{word}}, {{definition}}, {{date}}, {{time}}, {{aliases}}.").addTextArea((text) => text.setPlaceholder("Enter shared template...").setValue(this.plugin.settings.sharedSaveTemplate).onChange(async (value) => {
         this.plugin.settings.sharedSaveTemplate = value;
         await this.plugin.saveSettings();
       }));
     } else {
-      new import_obsidian.Setting(containerEl).setName("Save Template").setDesc("The template for the saved definition file. Placeholders: {{word}}, {{definition}}, {{date}}, {{time}}, {{aliases}}.").addTextArea((text) => text.setPlaceholder("Enter template...").setValue(this.plugin.settings.providerSaveTemplates[this.plugin.settings.provider] || "").onChange(async (value) => {
+      new import_obsidian.Setting(containerEl).setName("Save template").setDesc("The template for the saved definition file. Placeholders: {{word}}, {{definition}}, {{date}}, {{time}}, {{aliases}}.").addTextArea((text) => text.setPlaceholder("Enter template...").setValue(this.plugin.settings.providerSaveTemplates[this.plugin.settings.provider] || "").onChange(async (value) => {
         this.plugin.settings.providerSaveTemplates[this.plugin.settings.provider] = value;
         await this.plugin.saveSettings();
       }));
     }
-    containerEl.createEl("h3", { text: "Provider Settings" });
+    new import_obsidian.Setting(containerEl).setName("Provider configuration").setHeading();
     if (this.plugin.settings.provider === "gemini") {
-      new import_obsidian.Setting(containerEl).setName("Gemini API Key").setDesc("Your Google Gemini API Key").addText((text) => {
+      new import_obsidian.Setting(containerEl).setName("Gemini API key").setDesc("Your Google Gemini API key").addText((text) => {
         text.inputEl.type = "password";
         text.setPlaceholder("Enter your API key").setValue(this.plugin.settings.geminiApiKey).onChange(async (value) => {
           this.plugin.settings.geminiApiKey = value;
           await this.plugin.saveSettings();
         });
       });
-      new import_obsidian.Setting(containerEl).setName("Gemini Model").setDesc("Which model to use (e.g., gemini-1.5-pro, gemini-1.5-flash)").addText((text) => text.setPlaceholder("gemini-1.5-pro").setValue(this.plugin.settings.geminiModel).onChange(async (value) => {
+      new import_obsidian.Setting(containerEl).setName("Gemini model").setDesc("Which model to use (e.g., gemini-1.5-pro, gemini-1.5-flash)").addText((text) => text.setPlaceholder("gemini-1.5-pro").setValue(this.plugin.settings.geminiModel).onChange(async (value) => {
         this.plugin.settings.geminiModel = value;
         await this.plugin.saveSettings();
       }));
     } else if (this.plugin.settings.provider === "openai") {
-      new import_obsidian.Setting(containerEl).setName("OpenAI API Key").setDesc("Your OpenAI API Key").addText((text) => {
+      new import_obsidian.Setting(containerEl).setName("OpenAI API key").setDesc("Your OpenAI API key").addText((text) => {
         text.inputEl.type = "password";
         text.setPlaceholder("Enter your API key").setValue(this.plugin.settings.openaiApiKey).onChange(async (value) => {
           this.plugin.settings.openaiApiKey = value;
           await this.plugin.saveSettings();
         });
       });
-      new import_obsidian.Setting(containerEl).setName("OpenAI Model").setDesc("Which model to use (e.g., gpt-4o, gpt-4-turbo, gpt-3.5-turbo)").addText((text) => text.setPlaceholder("gpt-4o").setValue(this.plugin.settings.openaiModel).onChange(async (value) => {
+      new import_obsidian.Setting(containerEl).setName("OpenAI model").setDesc("Which model to use (e.g., gpt-4o, gpt-4-turbo, gpt-3.5-turbo)").addText((text) => text.setPlaceholder("gpt-4o").setValue(this.plugin.settings.openaiModel).onChange(async (value) => {
         this.plugin.settings.openaiModel = value;
         await this.plugin.saveSettings();
       }));
     } else if (this.plugin.settings.provider === "openrouter") {
-      new import_obsidian.Setting(containerEl).setName("OpenRouter API Key").setDesc("Your OpenRouter API Key").addText((text) => {
+      new import_obsidian.Setting(containerEl).setName("OpenRouter API key").setDesc("Your OpenRouter API key").addText((text) => {
         text.inputEl.type = "password";
         text.setPlaceholder("Enter your API key").setValue(this.plugin.settings.openRouterApiKey).onChange(async (value) => {
           this.plugin.settings.openRouterApiKey = value;
           await this.plugin.saveSettings();
         });
       });
-      new import_obsidian.Setting(containerEl).setName("OpenRouter Model").setDesc("Which model to use (e.g., meta-llama/llama-3-8b-instruct, anthropic/claude-3-haiku)").addText((text) => text.setPlaceholder("meta-llama/llama-3-8b-instruct").setValue(this.plugin.settings.openRouterModel).onChange(async (value) => {
+      new import_obsidian.Setting(containerEl).setName("OpenRouter model").setDesc("Which model to use (e.g., meta-llama/llama-3-8b-instruct, anthropic/claude-3-haiku)").addText((text) => text.setPlaceholder("meta-llama/llama-3-8b-instruct").setValue(this.plugin.settings.openRouterModel).onChange(async (value) => {
         this.plugin.settings.openRouterModel = value;
         await this.plugin.saveSettings();
       }));

@@ -5,22 +5,29 @@
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
-    "build": "node esbuild.config.mjs production",
-    "version": "node version-bump.mjs && git add manifest.json versions.json"
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "version": "node version-bump.mjs && git add manifest.json versions.json",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "keywords": [],
   "author": "TaGiaHuy",
   "license": "MIT",
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@eslint/json": "^0.14.0",
     "@types/codemirror": "^5.60.17",
     "@types/node": "^16.11.29",
-    "@typescript-eslint/eslint-plugin": "^5.29.0",
-    "@typescript-eslint/parser": "^5.29.0",
+    "@typescript-eslint/utils": "^8.57.2",
     "builtin-modules": "^3.3.0",
     "esbuild": "0.17.3",
+    "eslint": "^9.39.4",
+    "eslint-plugin-obsidianmd": "^0.1.9",
+    "globals": "^17.4.0",
     "obsidian": "latest",
     "tslib": "2.4.0",
-    "typescript": "4.9.5"
+    "typescript": "4.9.5",
+    "typescript-eslint": "^8.57.2"
   },
   "dependencies": {
     "@codemirror/state": "^6.6.0",

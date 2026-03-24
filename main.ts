@@ -61,7 +61,7 @@ export default class AITranslatorPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'translate-selected-text-replace',
-			name: 'Translate Selected Text (Replace)',
+			name: 'Translate selected text (replace)',
 			icon: 'languages',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
 				const selectedText = editor.getSelection();
@@ -80,16 +80,17 @@ export default class AITranslatorPlugin extends Plugin {
 					} else {
 						new Notice('Failed to get translation.');
 					}
-				} catch (error: any) {
+				} catch (error: unknown) {
+					const msg = error instanceof Error ? error.message : String(error);
 					console.error('Translation error:', error);
-					new Notice(`Translation error: ${error.message || error}`);
+					new Notice(`Translation error: ${msg}`);
 				}
 			}
 		});
 
         this.addCommand({
 			id: 'translate-selected-text-append',
-			name: 'Translate Selected Text (Append in parentheses)',
+			name: 'Translate selected text (append in parentheses)',
 			icon: 'plus-circle',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
 				const selectedText = editor.getSelection();
@@ -108,16 +109,17 @@ export default class AITranslatorPlugin extends Plugin {
 					} else {
 						new Notice('Failed to get translation.');
 					}
-				} catch (error: any) {
+				} catch (error: unknown) {
+					const msg = error instanceof Error ? error.message : String(error);
 					console.error('Translation error:', error);
-					new Notice(`Translation error: ${error.message || error}`);
+					new Notice(`Translation error: ${msg}`);
 				}
 			}
 		});
 
 		this.addCommand({
 			id: 'show-dictionary-popup',
-			name: 'Show Dictionary Popup for Selection',
+			name: 'Show dictionary popup for selection',
 			icon: 'book',
 			editorCallback: async (editor: Editor, view: MarkdownView) => {
 				const selectedText = editor.getSelection();
@@ -136,7 +138,7 @@ export default class AITranslatorPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'cycle-ai-provider',
-			name: 'Cycle AI Provider',
+			name: 'Cycle AI provider',
 			icon: 'refresh-ccw',
 			callback: async () => {
 				const allProviders: Array<'gemini' | 'openai' | 'openrouter' | 'google' | 'free-dictionary'> = ['gemini', 'openai', 'openrouter', 'google', 'free-dictionary'];
@@ -163,38 +165,37 @@ export default class AITranslatorPlugin extends Plugin {
 
 		// Support Reading Mode
 		this.registerDomEvent(document, 'mouseup', (evt: MouseEvent) => {
-			this.handleGlobalSelection(evt);
+			void this.handleGlobalSelection(evt);
 		});
 
 		this.registerDomEvent(document, 'touchend', (evt: TouchEvent) => {
-			this.handleGlobalSelection(evt);
+			void this.handleGlobalSelection(evt);
 		});
 	}
 
-	private handleGlobalSelection(evt: Event) {
+	private async handleGlobalSelection(evt: Event): Promise<void> {
 		// Small delay to let selection stabilize
-		setTimeout(() => {
-			const selection = window.getSelection();
-			const text = selection?.toString().trim();
+		await new Promise<void>(resolve => setTimeout(resolve, 50));
+		const selection = window.getSelection();
+		const text = selection?.toString().trim();
+		
+		if (text && text.length > 0) {
+			// Don't trigger if we are in an editor (EditorExtension handles that)
+			// or if the click was inside the popup
+			if (this.popupEl?.contains(evt.target as Node)) return;
 			
-			if (text && text.length > 0) {
-				// Don't trigger if we are in an editor (EditorExtension handles that)
-				// or if the click was inside the popup
-				if (this.popupEl?.contains(evt.target as Node)) return;
-				
-				const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (activeView && activeView.getMode() === 'preview') {
-					if (this.settings.triggerMode === 'auto') {
-						this.handleSelection(text);
-					}
-				}
-			} else {
-				// Only remove if we didn't click the popup
-				if (!this.popupEl?.contains(evt.target as Node)) {
-					this.removePopup();
+			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (activeView && activeView.getMode() === 'preview') {
+				if (this.settings.triggerMode === 'auto') {
+					this.handleSelection(text);
 				}
 			}
-		}, 50);
+		} else {
+			// Only remove if we didn't click the popup
+			if (!this.popupEl?.contains(evt.target as Node)) {
+				this.removePopup();
+			}
+		}
 	}
 
 	onunload() {
@@ -250,9 +251,9 @@ export default class AITranslatorPlugin extends Plugin {
 			
 			const aliases: string[] = [];
 
-			data[0].meanings.forEach((meaning: any) => {
+			data[0].meanings.forEach((meaning: { partOfSpeech: string; definitions: { definition: string; example?: string }[]; synonyms?: string[] }) => {
 				result += `### ${meaning.partOfSpeech}\n`;
-				meaning.definitions.forEach((def: any, idx: number) => {
+				meaning.definitions.forEach((def: { definition: string; example?: string }, idx: number) => {
 					result += `${idx + 1}. ${def.definition}\n`;
 					if (def.example) result += `   *Example: ${def.example}*\n`;
 				});
@@ -270,17 +271,20 @@ export default class AITranslatorPlugin extends Plugin {
 			}
 
 			return result;
-		} catch (error: any) {
+		} catch (error: unknown) {
+			const msg = error instanceof Error ? error.message : String(error);
 			console.error('Free Dictionary error:', error);
-			throw new Error(`Free Dictionary error: ${error.message || error}`);
+			throw new Error(`Free Dictionary error: ${msg}`);
 		}
 	}
 
     async callGoogleTranslate(text: string): Promise<string> {
         try {
             const targetLang = this.getLanguageCode(this.settings.targetLanguage);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const url = generateRequestUrl({ hl: targetLang as any });
-            const body = createRequestBody(text, { from: 'auto' as any, to: targetLang as any });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const body = createRequestBody(text, { from: 'auto', to: targetLang as any });
 
             const response = await requestUrl({
                 url: url,
@@ -297,9 +301,10 @@ export default class AITranslatorPlugin extends Plugin {
 
             const result = normaliseResponse(response.text);
             return result.text;
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : String(error);
             console.error('Google Translate error:', error);
-            throw new Error(`Google Translate error: ${error.message || error}`);
+            throw new Error(`Google Translate error: ${msg}`);
         }
     }
 
@@ -443,15 +448,15 @@ export default class AITranslatorPlugin extends Plugin {
 		}));
 	}
 
-	private selectionTimeout: any = null;
+	private selectionTimeout: ReturnType<typeof setTimeout> | null = null;
 	private popupEl: HTMLElement | null = null;
-	private activeHandlers: { [key: string]: (e: any) => void } = {};
+	private activeHandlers: { [key: string]: (e: Event) => void } = {};
 
 	private handleSelection(text: string) {
 		if (this.selectionTimeout) clearTimeout(this.selectionTimeout);
 		
-		this.selectionTimeout = setTimeout(async () => {
-			await this.showPopup(text);
+		this.selectionTimeout = setTimeout(() => {
+			void this.showPopup(text);
 		}, 700);
 	}
 
@@ -510,12 +515,13 @@ export default class AITranslatorPlugin extends Plugin {
 		if (Platform.isMobile || isNarrow) {
 			this.popupEl.addClass('is-mobile');
 		} else if (rect) {
-			this.popupEl.style.left = `${rect.left}px`;
-			this.popupEl.style.top = `${rect.bottom + 10}px`;
+			this.popupEl.setCssProps({ '--popup-left': `${rect.left}px`, '--popup-top': `${rect.bottom + 10}px` });
+			this.popupEl.style.left = `var(--popup-left)`;
+			this.popupEl.style.top = `var(--popup-top)`;
 		}
 
 		const header = this.popupEl.createEl('div', { cls: 'ai-translator-popup-header' });
-		header.createEl('span', { text: 'AI Dictionary', cls: 'ai-translator-popup-title' });
+		header.createEl('span', { text: 'AI dictionary', cls: 'ai-translator-popup-title' });
 		
 		const closeBtn = header.createEl('div', { cls: 'ai-translator-popup-close-btn' });
 		setIcon(closeBtn, 'x');
@@ -541,13 +547,12 @@ export default class AITranslatorPlugin extends Plugin {
 			
 			// Remove mobile class/transform to allow manual positioning
 			this.popupEl!.removeClass('is-mobile');
-			if (this.popupEl!.style.transform) {
-				this.popupEl!.style.transform = '';
-			}
-			this.popupEl!.style.left = `${initialLeft}px`;
-			this.popupEl!.style.top = `${initialTop}px`;
+			this.popupEl!.removeClass('is-transformed');
+			this.popupEl!.setCssProps({ '--popup-left': `${initialLeft}px`, '--popup-top': `${initialTop}px` });
+			this.popupEl!.style.left = `var(--popup-left)`;
+			this.popupEl!.style.top = `var(--popup-top)`;
 			
-			header.style.cursor = 'grabbing';
+			header.addClass('is-dragging');
 		};
 
 		header.onmousedown = (e: MouseEvent) => {
@@ -575,8 +580,9 @@ export default class AITranslatorPlugin extends Plugin {
 			newLeft = Math.max(padding, Math.min(newLeft, window.innerWidth - rect.width - padding));
 			newTop = Math.max(padding, Math.min(newTop, window.innerHeight - rect.height - padding));
 
-			this.popupEl.style.left = `${newLeft}px`;
-			this.popupEl.style.top = `${newTop}px`;
+			this.popupEl.setCssProps({ '--popup-left': `${newLeft}px`, '--popup-top': `${newTop}px` });
+			this.popupEl.style.left = `var(--popup-left)`;
+			this.popupEl.style.top = `var(--popup-top)`;
 		};
 
 		const mouseMoveHandler = (e: MouseEvent) => moveHandler(e.clientX, e.clientY);
@@ -588,7 +594,7 @@ export default class AITranslatorPlugin extends Plugin {
 
 		const stopDragging = () => {
 			isDragging = false;
-			if (header) header.style.cursor = 'grab';
+			if (header) header.removeClass('is-dragging');
 		};
 
 		this.activeHandlers.mousemove = mouseMoveHandler;
@@ -602,14 +608,6 @@ export default class AITranslatorPlugin extends Plugin {
 		document.addEventListener('touchend', stopDragging);
 
 		const contentArea = this.popupEl.createEl('textarea', { cls: 'ai-translator-popup-content' });
-		contentArea.style.width = '100%';
-		contentArea.style.height = '150px';
-		contentArea.style.resize = 'vertical';
-		contentArea.style.backgroundColor = 'var(--background-primary)';
-		contentArea.style.color = 'var(--text-normal)';
-		contentArea.style.border = '1px solid var(--background-modifier-border)';
-		contentArea.style.borderRadius = '4px';
-		contentArea.style.padding = '8px';
 
 		const fetchResult = async (provider: string) => {
 			// Clear and show loading
@@ -634,8 +632,9 @@ export default class AITranslatorPlugin extends Plugin {
 					case 'free-dictionary': result = await this.callFreeDictionary(text); break;
 				}
 				contentArea.value = result;
-			} catch (error: any) {
-				contentArea.value = `Error: ${error.message || error}`;
+			} catch (error: unknown) {
+				const msg = error instanceof Error ? error.message : String(error);
+				contentArea.value = `Error: ${msg}`;
 			} finally {
 				loading?.remove();
 				contentArea.disabled = false;
@@ -684,7 +683,7 @@ export default class AITranslatorPlugin extends Plugin {
 		setIcon(copyBtn, 'copy');
 		setTooltip(copyBtn, 'Copy Content');
 		copyBtn.onclick = () => {
-			navigator.clipboard.writeText(contentArea.value);
+			void navigator.clipboard.writeText(contentArea.value);
 			new Notice('Copied to clipboard');
 		};
 
@@ -692,14 +691,14 @@ export default class AITranslatorPlugin extends Plugin {
 		await fetchResult(this.settings.provider);
 
 		// Global event listeners for cleanup
-		this.activeHandlers.escape = (e: KeyboardEvent) => {
-			if (e.key === 'Escape') {
+		this.activeHandlers.escape = (e: Event) => {
+			if ((e as KeyboardEvent).key === 'Escape') {
 				this.removePopup();
 			}
 		};
 		document.addEventListener('keydown', this.activeHandlers.escape);
 
-		this.activeHandlers.clickOutside = (e: MouseEvent) => {
+		this.activeHandlers.clickOutside = (e: Event) => {
 			if (this.popupEl && !this.popupEl.contains(e.target as Node) && !isDragging) {
 				this.removePopup();
 			}
@@ -752,9 +751,10 @@ export default class AITranslatorPlugin extends Plugin {
 				await this.app.vault.create(filePath, fileContent);
 				new Notice(`Saved to ${filePath}`);
 			}
-		} catch (error) {
+		} catch (error: unknown) {
+			const msg = error instanceof Error ? error.message : String(error);
 			console.error('Error saving definition:', error);
-			new Notice(`Error saving: ${error.message}`);
+			new Notice(`Error saving: ${msg}`);
 		}
 	}
 }
@@ -773,7 +773,8 @@ class AITranslatorSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Target Language')
+			.setName('Target language')
+			// eslint-disable-next-line obsidianmd/ui/sentence-case
 			.setDesc('The language you want to translate your text into (e.g., Vietnamese, English, French)')
 			.addText(text => text
 				.setPlaceholder('Vietnamese')
@@ -784,11 +785,11 @@ class AITranslatorSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('Dictionary Popup Trigger')
+			.setName('Dictionary popup trigger')
 			.setDesc('How should the dictionary popup be triggered?')
 			.addDropdown(dropdown => dropdown
-				.addOption('auto', 'Automatic (On Selection)')
-				.addOption('manual', 'Manual (Hotkey Only)')
+				.addOption('auto', 'Automatic (on selection)')
+				.addOption('manual', 'Manual (hotkey only)')
 				.addOption('disabled', 'Disabled')
 				.setValue(this.plugin.settings.triggerMode)
 				.onChange(async (value: 'auto' | 'manual' | 'disabled') => {
@@ -796,16 +797,23 @@ class AITranslatorSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		containerEl.createEl('h3', { text: 'AI Provider' });
+		new Setting(containerEl)
+			.setName('AI provider')
+			.setHeading();
 
 		new Setting(containerEl)
-			.setName('AI Provider')
-			.setDesc('Choose which AI service or Dictionary to use')
+			.setName('AI provider')
+			.setDesc('Choose which AI service or dictionary to use')
 			.addDropdown(dropdown => dropdown
+				// eslint-disable-next-line obsidianmd/ui/sentence-case
 				.addOption('gemini', 'Google Gemini')
+				// eslint-disable-next-line obsidianmd/ui/sentence-case
 				.addOption('openai', 'OpenAI')
+				// eslint-disable-next-line obsidianmd/ui/sentence-case
 				.addOption('openrouter', 'OpenRouter')
+				// eslint-disable-next-line obsidianmd/ui/sentence-case
 				.addOption('google', 'Google Translate')
+				// eslint-disable-next-line obsidianmd/ui/sentence-case
 				.addOption('free-dictionary', 'Free Dictionary API')
 				.setValue(this.plugin.settings.provider)
 				.onChange(async (value: 'gemini' | 'openai' | 'openrouter' | 'google' | 'free-dictionary') => {
@@ -814,8 +822,11 @@ class AITranslatorSettingTab extends PluginSettingTab {
                     this.display(); // re-render to show provider-specific settings
 				}));
 
-		containerEl.createEl('h3', { text: 'Provider Loop Configuration' });
-		containerEl.createEl('p', { text: 'Select which providers to include when using the "Cycle AI Provider" command.' });
+		new Setting(containerEl)
+			.setName('Provider loop configuration')
+			// eslint-disable-next-line obsidianmd/ui/sentence-case
+			.setDesc('Select which providers to include when using the "Cycle AI provider" command.')
+			.setHeading();
 
 		const providers: Array<{ id: string, name: string }> = [
 			{ id: 'gemini', name: 'Google Gemini' },
@@ -842,13 +853,15 @@ class AITranslatorSettingTab extends PluginSettingTab {
 					}));
 		});
 
-		containerEl.createEl('h3', { text: `Settings for ${this.plugin.settings.provider}` });
+		new Setting(containerEl)
+			.setName(`Settings for ${this.plugin.settings.provider}`)
+			.setHeading();
 
 		const isAIProvider = ['gemini', 'openai', 'openrouter'].includes(this.plugin.settings.provider);
 		
 		if (isAIProvider) {
 			new Setting(containerEl)
-				.setName('Custom Prompt')
+				.setName('Custom prompt')
 				.setDesc('Customize how the AI analyzes the selected text. Use {{targetLanguage}} and {{text}} as placeholders.')
 				.addTextArea(text => text
 					.setPlaceholder('Enter your custom prompt here...')
@@ -860,9 +873,10 @@ class AITranslatorSettingTab extends PluginSettingTab {
 		}
 
 		new Setting(containerEl)
-			.setName('Save Folder')
+			.setName('Save folder')
 			.setDesc('The folder where definitions will be saved.')
 			.addText(text => text
+				// eslint-disable-next-line obsidianmd/ui/sentence-case
 				.setPlaceholder('AI-Definitions')
 				.setValue(this.plugin.settings.saveFolder)
 				.onChange(async (value) => {
@@ -871,7 +885,7 @@ class AITranslatorSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName('Use Shared Template')
+			.setName('Use shared template')
 			.setDesc('Use a single template for all providers instead of per-provider templates.')
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.useSharedTemplate)
@@ -883,7 +897,7 @@ class AITranslatorSettingTab extends PluginSettingTab {
 
 		if (this.plugin.settings.useSharedTemplate) {
 			new Setting(containerEl)
-				.setName('Shared Save Template')
+				.setName('Shared save template')
 				.setDesc('The template used for all providers. Placeholders: {{word}}, {{definition}}, {{date}}, {{time}}, {{aliases}}.')
 				.addTextArea(text => text
 					.setPlaceholder('Enter shared template...')
@@ -894,7 +908,7 @@ class AITranslatorSettingTab extends PluginSettingTab {
 					}));
 		} else {
 			new Setting(containerEl)
-				.setName('Save Template')
+				.setName('Save template')
 				.setDesc('The template for the saved definition file. Placeholders: {{word}}, {{definition}}, {{date}}, {{time}}, {{aliases}}.')
 				.addTextArea(text => text
 					.setPlaceholder('Enter template...')
@@ -905,12 +919,15 @@ class AITranslatorSettingTab extends PluginSettingTab {
 					}));
 		}
 
-        containerEl.createEl('h3', { text: 'Provider Settings' });
+        new Setting(containerEl)
+            .setName('Provider configuration')
+            .setHeading();
 
         if (this.plugin.settings.provider === 'gemini') {
             new Setting(containerEl)
-                .setName('Gemini API Key')
-                .setDesc('Your Google Gemini API Key')
+                .setName('Gemini API key')
+                // eslint-disable-next-line obsidianmd/ui/sentence-case
+                .setDesc('Your Google Gemini API key')
                 .addText(text => {
                     text.inputEl.type = 'password';
                     text.setPlaceholder('Enter your API key')
@@ -922,9 +939,10 @@ class AITranslatorSettingTab extends PluginSettingTab {
                 });
 
             new Setting(containerEl)
-                .setName('Gemini Model')
+                .setName('Gemini model')
                 .setDesc('Which model to use (e.g., gemini-1.5-pro, gemini-1.5-flash)')
                 .addText(text => text
+                    // eslint-disable-next-line obsidianmd/ui/sentence-case
                     .setPlaceholder('gemini-1.5-pro')
                     .setValue(this.plugin.settings.geminiModel)
                     .onChange(async (value) => {
@@ -934,8 +952,10 @@ class AITranslatorSettingTab extends PluginSettingTab {
         } 
         else if (this.plugin.settings.provider === 'openai') {
             new Setting(containerEl)
-                .setName('OpenAI API Key')
-                .setDesc('Your OpenAI API Key')
+                // eslint-disable-next-line obsidianmd/ui/sentence-case
+                .setName('OpenAI API key')
+                // eslint-disable-next-line obsidianmd/ui/sentence-case
+                .setDesc('Your OpenAI API key')
                 .addText(text => {
                     text.inputEl.type = 'password';
                     text.setPlaceholder('Enter your API key')
@@ -947,9 +967,11 @@ class AITranslatorSettingTab extends PluginSettingTab {
                 });
 
             new Setting(containerEl)
-                .setName('OpenAI Model')
+                // eslint-disable-next-line obsidianmd/ui/sentence-case
+                .setName('OpenAI model')
                 .setDesc('Which model to use (e.g., gpt-4o, gpt-4-turbo, gpt-3.5-turbo)')
                 .addText(text => text
+                    // eslint-disable-next-line obsidianmd/ui/sentence-case
                     .setPlaceholder('gpt-4o')
                     .setValue(this.plugin.settings.openaiModel)
                     .onChange(async (value) => {
@@ -959,8 +981,10 @@ class AITranslatorSettingTab extends PluginSettingTab {
         } 
         else if (this.plugin.settings.provider === 'openrouter') {
             new Setting(containerEl)
-                .setName('OpenRouter API Key')
-                .setDesc('Your OpenRouter API Key')
+                // eslint-disable-next-line obsidianmd/ui/sentence-case
+                .setName('OpenRouter API key')
+                // eslint-disable-next-line obsidianmd/ui/sentence-case
+                .setDesc('Your OpenRouter API key')
                 .addText(text => {
                     text.inputEl.type = 'password';
                     text.setPlaceholder('Enter your API key')
@@ -972,9 +996,11 @@ class AITranslatorSettingTab extends PluginSettingTab {
                 });
 
             new Setting(containerEl)
-                .setName('OpenRouter Model')
+                // eslint-disable-next-line obsidianmd/ui/sentence-case
+                .setName('OpenRouter model')
                 .setDesc('Which model to use (e.g., meta-llama/llama-3-8b-instruct, anthropic/claude-3-haiku)')
                 .addText(text => text
+                    // eslint-disable-next-line obsidianmd/ui/sentence-case
                     .setPlaceholder('meta-llama/llama-3-8b-instruct')
                     .setValue(this.plugin.settings.openRouterModel)
                     .onChange(async (value) => {
