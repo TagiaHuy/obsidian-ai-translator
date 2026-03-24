@@ -1,81 +1,102 @@
-# Obsidian AI Translator
+Here is the complete, professional **README.md** in English, optimized for GitHub with clear navigation and callouts.
 
-A powerful translation and dictionary plugin for Obsidian, powered by TaGiaHuy and community APIs. Translate words or phrases on the fly, manage multiple translation engines, and save definitions directly to your vault with custom templates.
+-----
+
+# 🌐 Obsidian AI Translator
+
+**A sophisticated AI-powered translation and personal dictionary system for Obsidian, powered by TaGiaHuy and community APIs.**
+
+[](https://obsidian.md/)
+[](https://opensource.org/licenses/MIT)
+
+-----
+![alt text](image.png)
 
 ## ✨ Features
 
 ### 🌍 Multiple Translation Engines
-- **AI-Powered**: Supports **Google Gemini**, **OpenAI**, and **OpenRouter** (for specialized models).
-- **Lightweight APIs**: **Google Translate** (via browser API) and **Free Dictionary API** for quick lookups without API keys.
+
+  - **AI-Powered Intelligence**: Deep integration with **Google Gemini**, **OpenAI**, and **OpenRouter** for context-aware translations.
+  - **High-Speed Lookups**: Built-in support for **Google Translate API** (browser-based) and **Free Dictionary API** for instant results without needing API keys.
 
 ### 🔍 Interactive Dictionary Popup
-- **Draggable & Dismissible**: Move the popup anywhere on your screen or close it with a single click or the `Escape` key.
-- **On-the-fly Switching**: Change translation providers directly within the popup via a dropdown menu.
-- **Editable Content**: Refine or add your own notes to the AI-generated definition before saving.
-- **Quick Save & Copy**: Save definitions to your vault using customizable templates or copy them to your clipboard.
+
+  - **Fully Draggable**: Position the popup anywhere on your screen; it stays where you want it.
+  - **On-the-fly Switching**: Compare translations instantly by switching providers via a dropdown menu inside the popup.
+  - **Live Editing**: Refine or add personal notes to the AI-generated definition before saving it to your vault.
+  - **Smart Actions**: Save definitions using custom templates or copy results to your clipboard with a single click.
 
 ### ⚡ Seamless Workflow
-- **Auto-Trigger**: Optional mode to automatically show the dictionary popup whenever you select text.
-- **Provider Loop**: Configure a custom subset of providers to cycle through quickly using a hotkey.
-- **Inline Translation**: Replace selected text with its translation directly in your editor.
 
-### 🛠️ Extensive Customization
-- **Per-Provider Prompts**: Fully customize the system prompt for each AI engine to get the exact output format you want.
-- **Flexible Templates**: Use placeholders like `{{word}}`, `{{definition}}`, `{{date}}`, and `{{alliases}}` to create beautiful definition notes.
-- **Shared or Unique Templates**: Choose whether all providers share one save template or if each has its own.
+  - **Auto-Trigger Mode**: Automatically trigger the popup upon text selection for a friction-less reading experience.
+  - **Provider Loop**: Cycle through your favorite AI engines instantly using a customizable hotkey.
+  - **Inline Translation**: Replace selected text with its translation directly in the editor (e.g., `Hello` ➔ `Hello (Xin chào)`).
 
----
+-----
+
+## 🔌 Recommended Integrations
+
+While **AI Translator** is a standalone plugin, it is designed to work in synergy with the following tools to supercharge your learning:
+
+1.  **[Note Definitions](https://www.google.com/search?q=https://github.com/mProjectsCode/obsidian-note-definitions)**: Display your saved definitions as tooltips when hovering over words in other notes, eliminating the need to re-translate.
+2.  **[Spaced Repetition](https://www.google.com/search?q=https://github.com/stravid/obsidian-spaced-repetition)**: Automatically turn your saved vocabulary into flashcards for long-term retention.
+
+> [\!IMPORTANT]
+> **Note:** These are independent projects. You must install them separately from the Community Plugins store to enable these integrated workflows.
+
+-----
 
 ## 🚀 Installation
 
-### From Community Plugins (Coming Soon)
-1. Open **Settings** > **Community plugins**.
-2. Click **Browse** and search for `AI Translator`.
-3. Click **Install**, then **Enable**.
+### Option 1: Community Plugins (Coming Soon)
 
-### Manual Installation
-1. Download the latest release (`main.js`, `styles.css`, `manifest.json`).
-2. Create a folder named `obsidian-ai-translator` in your vault's plugin directory: `<vault>/.obsidian/plugins/obsidian-ai-translator/`.
-3. Move the downloaded files into that folder.
-4. Reload Obsidian and enable the plugin in **Settings** > **Community plugins**.
+1.  Go to **Settings** \> **Community plugins**.
+2.  Click **Browse** and search for `AI Translator`.
+3.  Click **Install**, then **Enable**.
 
----
+### Option 2: Manual Installation
+
+1.  Download the latest release (`main.js`, `styles.css`, `manifest.json`) from the Releases page.
+2.  Create a folder named `obsidian-ai-translator` in: `<your-vault>/.obsidian/plugins/`.
+3.  Move the downloaded files into that folder.
+4.  Reload Obsidian and enable the plugin in **Settings** \> **Community plugins**.
+
+-----
 
 ## ⚙️ Configuration
 
-1. **API Keys**: Go to the plugin settings and enter your API keys for Gemini, OpenAI, or OpenRouter.
-2. **Target Language**: Set your preferred language for translations (e.g., `Vietnamese`, `English`).
-3. **Trigger Mode**:
-   - `Auto`: Popup appears immediately on text selection.
-   - `Manual`: Popup only appears when you run the command.
-   - `Disabled`: Selection trigger is off.
-4. **Save Folder**: Specify where you want your definition files to be stored.
-5. **Provider Loop**: Check the engines you want to include in the "Cycle AI Provider" rotation.
+1.  **API Keys**: Enter your keys for Gemini, OpenAI, or OpenRouter in the settings tab.
+2.  **Trigger Mode**:
+      - `Auto`: Popup appears immediately on selection.
+      - `Manual`: Popup appears only via command or hotkey.
+3.  **Save Folder**: Define where your vocabulary/definition notes will be stored.
+4.  **Templates**: Customize your notes using placeholders:
+      - `{{word}}`: The original text.
+      - `{{definition}}`: The translated output.
+      - `{{date}}` / `{{time}}`: Timestamp of creation.
 
----
+-----
 
 ## 📖 How to Use
 
-### Dictionary Lookup
-1. Select a word or phrase in your editor.
-2. Depending on your **Trigger Mode**, the popup will appear automatically, or you can run the **"Show Dictionary Popup for Selection"** command.
-3. Click the **Save** icon to create a note in your vault, or the **Copy** icon to copy the text.
-4. Use the dropdown in the popup to try a different translation engine.
+### Lookup & Save
 
-### Quick Actions
-- **Cycle AI Provider**: Bind this to a hotkey (e.g., `Alt+P`) via Obsidian's Hotkey settings to flip between your favorite engines instantly. The active popup will refresh automatically when you cycle.
-- **Translate Selection**: Run this command to replace the selected text with its translation (e.g., `Hello` -> `Hello (Xin chào)`).
+1.  **Highlight** a word or phrase in your editor.
+2.  The popup appears (or use the "Show Dictionary Popup" command).
+3.  Review the result, edit if necessary, and click the **Save** (floppy disk) icon.
+4.  A new Markdown file is generated in your designated folder.
 
-### Save Templates
-Customize your notes using these placeholders:
-- `{{word}}`: The original selected text.
-- `{{definition}}`: The translated result.
-- `{{date}}`: Current date (`YYYY-MM-DD`).
-- `{{time}}`: Current time (`HH:mm:ss`).
-- `{{alliases}}`: Any aliases extracted from the definition (if supported by your prompt).
+### Pro Tips
 
----
+  * **Cycle Providers**: Bind a hotkey (like `Alt + P`) to **"Cycle AI Provider"**. This allows you to flip between different AI models within the active popup to get different perspectives on a word.
+  * **Inline Translate**: Use the **"Translate Selection"** command to translate and replace text in-place while writing.
+
+-----
 
 ## 📄 License
 
-This plugin is released under the [MIT License](LICENSE).
+This project is licensed under the [MIT License](https://www.google.com/search?q=LICENSE).
+
+-----
+
+**Would you like me to generate a standard `manifest.json` file for you to include in your plugin package?**

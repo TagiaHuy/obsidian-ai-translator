@@ -300,10 +300,7 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
           return;
         }
         if (this.settings.triggerMode !== "disabled") {
-          const cmView = view.editor.cm;
-          if (cmView) {
-            await this.showPopup(selectedText, cmView);
-          }
+          await this.showPopup(selectedText);
         }
       }
     });
@@ -326,6 +323,33 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
       }
     });
     this.registerEditorExtension(this.getEditorExtension());
+    this.registerDomEvent(document, "mouseup", (evt) => {
+      this.handleGlobalSelection(evt);
+    });
+    this.registerDomEvent(document, "touchend", (evt) => {
+      this.handleGlobalSelection(evt);
+    });
+  }
+  handleGlobalSelection(evt) {
+    setTimeout(() => {
+      var _a, _b;
+      const selection = window.getSelection();
+      const text = selection == null ? void 0 : selection.toString().trim();
+      if (text && text.length > 0) {
+        if ((_a = this.popupEl) == null ? void 0 : _a.contains(evt.target))
+          return;
+        const activeView = this.app.workspace.getActiveViewOfType(import_obsidian.MarkdownView);
+        if (activeView && activeView.getMode() === "preview") {
+          if (this.settings.triggerMode === "auto") {
+            this.handleSelection(text);
+          }
+        }
+      } else {
+        if (!((_b = this.popupEl) == null ? void 0 : _b.contains(evt.target))) {
+          this.removePopup();
+        }
+      }
+    }, 50);
   }
   onunload() {
   }
@@ -537,7 +561,7 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
           if (this.settings.triggerMode === "auto") {
             const text = update.state.doc.sliceString(selection.from, selection.to).trim();
             if (text.length > 0) {
-              this.handleSelection(text, update.view);
+              this.handleSelection(text);
             }
           }
         } else {
@@ -546,12 +570,11 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
       }
     }));
   }
-  handleSelection(text, view) {
+  handleSelection(text) {
     if (this.selectionTimeout)
       clearTimeout(this.selectionTimeout);
-    this.removePopup();
     this.selectionTimeout = setTimeout(async () => {
-      await this.showPopup(text, view);
+      await this.showPopup(text);
     }, 700);
   }
   removePopup() {
@@ -573,18 +596,37 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
     this.activeHandlers = {};
     this.refreshActivePopup = null;
   }
-  async showPopup(text, view) {
-    const selection = view.state.selection.main;
-    const domRect = view.coordsAtPos(selection.to);
-    if (!domRect)
-      return;
-    this.popupEl = document.body.createEl("div", { cls: "ai-translator-popup" });
+  async showPopup(text) {
     const isNarrow = window.innerWidth < 600;
+    let rect = null;
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      rect = range.getBoundingClientRect();
+    }
+    if (!rect || rect.width === 0 && rect.height === 0) {
+      const activeView = this.app.workspace.getActiveViewOfType(import_obsidian.MarkdownView);
+      const editor = activeView == null ? void 0 : activeView.editor;
+      if (editor) {
+        const cm = editor.cm;
+        if (cm) {
+          const head = cm.state.selection.main.head;
+          const coords = cm.coordsAtPos(head);
+          if (coords) {
+            rect = new DOMRect(coords.left, coords.bottom, 0, 0);
+          }
+        }
+      }
+    }
+    if (!rect && !import_obsidian.Platform.isMobile && !isNarrow)
+      return;
+    this.removePopup();
+    this.popupEl = document.body.createEl("div", { cls: "ai-translator-popup" });
     if (import_obsidian.Platform.isMobile || isNarrow) {
       this.popupEl.addClass("is-mobile");
-    } else {
-      this.popupEl.style.left = `${domRect.left}px`;
-      this.popupEl.style.top = `${domRect.bottom + 10}px`;
+    } else if (rect) {
+      this.popupEl.style.left = `${rect.left}px`;
+      this.popupEl.style.top = `${rect.bottom + 10}px`;
     }
     const header = this.popupEl.createEl("div", { cls: "ai-translator-popup-header" });
     header.createEl("span", { text: "AI Dictionary", cls: "ai-translator-popup-title" });
@@ -602,9 +644,9 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
       isDragging = true;
       startX = clientX;
       startY = clientY;
-      const rect = this.popupEl.getBoundingClientRect();
-      initialLeft = rect.left;
-      initialTop = rect.top;
+      const rect2 = this.popupEl.getBoundingClientRect();
+      initialLeft = rect2.left;
+      initialTop = rect2.top;
       this.popupEl.removeClass("is-mobile");
       if (this.popupEl.style.transform) {
         this.popupEl.style.transform = "";
@@ -628,10 +670,10 @@ var AITranslatorPlugin = class extends import_obsidian.Plugin {
       const dy = clientY - startY;
       let newLeft = initialLeft + dx;
       let newTop = initialTop + dy;
-      const rect = this.popupEl.getBoundingClientRect();
+      const rect2 = this.popupEl.getBoundingClientRect();
       const padding = 10;
-      newLeft = Math.max(padding, Math.min(newLeft, window.innerWidth - rect.width - padding));
-      newTop = Math.max(padding, Math.min(newTop, window.innerHeight - rect.height - padding));
+      newLeft = Math.max(padding, Math.min(newLeft, window.innerWidth - rect2.width - padding));
+      newTop = Math.max(padding, Math.min(newTop, window.innerHeight - rect2.height - padding));
       this.popupEl.style.left = `${newLeft}px`;
       this.popupEl.style.top = `${newTop}px`;
     };

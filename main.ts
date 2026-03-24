@@ -127,11 +127,7 @@ export default class AITranslatorPlugin extends Plugin {
 				}
 				
 				if (this.settings.triggerMode !== 'disabled') {
-					// @ts-ignore
-					const cmView = view.editor.cm;
-					if (cmView) {
-						await this.showPopup(selectedText, cmView);
-					}
+						await this.showPopup(selectedText);
 				}
 			}
 		});
@@ -164,6 +160,41 @@ export default class AITranslatorPlugin extends Plugin {
 		});
 
 		this.registerEditorExtension(this.getEditorExtension());
+
+		// Support Reading Mode
+		this.registerDomEvent(document, 'mouseup', (evt: MouseEvent) => {
+			this.handleGlobalSelection(evt);
+		});
+
+		this.registerDomEvent(document, 'touchend', (evt: TouchEvent) => {
+			this.handleGlobalSelection(evt);
+		});
+	}
+
+	private handleGlobalSelection(evt: Event) {
+		// Small delay to let selection stabilize
+		setTimeout(() => {
+			const selection = window.getSelection();
+			const text = selection?.toString().trim();
+			
+			if (text && text.length > 0) {
+				// Don't trigger if we are in an editor (EditorExtension handles that)
+				// or if the click was inside the popup
+				if (this.popupEl?.contains(evt.target as Node)) return;
+				
+				const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+				if (activeView && activeView.getMode() === 'preview') {
+					if (this.settings.triggerMode === 'auto') {
+						this.handleSelection(text);
+					}
+				}
+			} else {
+				// Only remove if we didn't click the popup
+				if (!this.popupEl?.contains(evt.target as Node)) {
+					this.removePopup();
+				}
+			}
+		}, 50);
 	}
 
 	onunload() {
@@ -402,7 +433,7 @@ export default class AITranslatorPlugin extends Plugin {
 					if (this.settings.triggerMode === 'auto') {
 						const text = update.state.doc.sliceString(selection.from, selection.to).trim();
 						if (text.length > 0) {
-							this.handleSelection(text, update.view);
+							this.handleSelection(text);
 						}
 					}
 				} else {
@@ -416,12 +447,11 @@ export default class AITranslatorPlugin extends Plugin {
 	private popupEl: HTMLElement | null = null;
 	private activeHandlers: { [key: string]: (e: any) => void } = {};
 
-	private handleSelection(text: string, view: EditorView) {
+	private handleSelection(text: string) {
 		if (this.selectionTimeout) clearTimeout(this.selectionTimeout);
-		this.removePopup();
-
+		
 		this.selectionTimeout = setTimeout(async () => {
-			await this.showPopup(text, view);
+			await this.showPopup(text);
 		}, 700);
 	}
 
@@ -444,19 +474,44 @@ export default class AITranslatorPlugin extends Plugin {
 		this.refreshActivePopup = null;
 	}
 
-	private async showPopup(text: string, view: EditorView) {
-		const selection = view.state.selection.main;
-		const domRect = view.coordsAtPos(selection.to);
-		if (!domRect) return;
+	private async showPopup(text: string) {
+		const isNarrow = window.innerWidth < 600;
+		let rect: DOMRect | null = null;
+		
+		// Try to get selection coordinates
+		const selection = window.getSelection();
+		if (selection && selection.rangeCount > 0) {
+			const range = selection.getRangeAt(0);
+			rect = range.getBoundingClientRect();
+		}
 
+		// If it's a manual trigger and no DOM selection, it might be an editor selection
+		if (!rect || (rect.width === 0 && rect.height === 0)) {
+			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			const editor = activeView?.editor;
+			if (editor) {
+				// @ts-ignore
+				const cm = editor.cm;
+				if (cm) {
+					const head = cm.state.selection.main.head;
+					const coords = cm.coordsAtPos(head);
+					if (coords) {
+						rect = new DOMRect(coords.left, coords.bottom, 0, 0);
+					}
+				}
+			}
+		}
+
+		if (!rect && !Platform.isMobile && !isNarrow) return;
+
+		this.removePopup();
 		this.popupEl = document.body.createEl('div', { cls: 'ai-translator-popup' });
 		
-		const isNarrow = window.innerWidth < 600;
 		if (Platform.isMobile || isNarrow) {
 			this.popupEl.addClass('is-mobile');
-		} else {
-			this.popupEl.style.left = `${domRect.left}px`;
-			this.popupEl.style.top = `${domRect.bottom + 10}px`;
+		} else if (rect) {
+			this.popupEl.style.left = `${rect.left}px`;
+			this.popupEl.style.top = `${rect.bottom + 10}px`;
 		}
 
 		const header = this.popupEl.createEl('div', { cls: 'ai-translator-popup-header' });
