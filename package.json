@@ -1,5 +1,5 @@
 {
-  "name": "obsidian-ai-translator",
+  "name": "ai-translator",
   "version": "1.0.0",
   "description": "Translate specific words to a target language using AI (Gemini, OpenAI, OpenRouter)",
   "main": "main.js",
