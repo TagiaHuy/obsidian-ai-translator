@@ -99,4 +99,3 @@ This project is licensed under the [MIT License](https://www.google.com/search?q
 
 -----
 
-**Would you like me to generate a standard `manifest.json` file for you to include in your plugin package?**
